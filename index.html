@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SketchStory AI - Spersonalizowane Animacje Whiteboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-magic"></i>
+                    <span>SketchStory AI</span>
+                </div>
+                <nav class="nav">
+                    <button class="nav-btn active" data-tab="create">
+                        <i class="fas fa-plus"></i>
+                        Stwórz Historię
+                    </button>
+                    <button class="nav-btn" data-tab="gallery">
+                        <i class="fas fa-images"></i>
+                        Galeria
+                    </button>
+                    <button class="nav-btn" data-tab="settings">
+                        <i class="fas fa-cog"></i>
+                        Ustawienia
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Create Story Tab -->
+            <div class="tab-content active" id="create-tab">
+                <div class="create-section">
+                    <div class="input-panel">
+                        <h2>Opisz swoją historię</h2>
+                        
+                        <div class="input-group">
+                            <label for="story-prompt">Temat lub pomysł na historię:</label>
+                            <textarea 
+                                id="story-prompt" 
+                                placeholder="Np. 'Historia o młodym przedsiębiorcy, który zaczyna swoją firmę technologiczną...'&#10;lub&#10;'Wyjaśnij jak działa fotosynteza w prosty sposób'"
+                                rows="4"
+                            ></textarea>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="story-style">Styl animacji:</label>
+                            <select id="story-style">
+                                <option value="hand-drawn">Rysowane ręcznie</option>
+                                <option value="minimal">Minimalistyczny</option>
+                                <option value="business">Biznesowy</option>
+                                <option value="educational">Edukacyjny</option>
+                                <option value="creative">Kreatywny</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="story-duration">Długość animacji:</label>
+                            <select id="story-duration">
+                                <option value="30">30 sekund</option>
+                                <option value="60" selected>1 minuta</option>
+                                <option value="120">2 minuty</option>
+                                <option value="300">5 minut</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="voice-style">Styl narracji:</label>
+                            <select id="voice-style">
+                                <option value="professional">Profesjonalny</option>
+                                <option value="friendly">Przyjazny</option>
+                                <option value="energetic">Energiczny</option>
+                                <option value="calm">Spokojny</option>
+                                <option value="none">Bez narracji</option>
+                            </select>
+                        </div>
+
+                        <div class="ai-options">
+                            <h3>Opcje AI</h3>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="auto-images" checked>
+                                    <span>Automatyczne generowanie obrazów</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="auto-script" checked>
+                                    <span>Automatyczne tworzenie scenariusza</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="optimize-flow" checked>
+                                    <span>Optymalizacja przepływu historii</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button class="generate-btn" id="generate-story">
+                            <i class="fas fa-magic"></i>
+                            Generuj Animację
+                        </button>
+                    </div>
+
+                    <div class="preview-panel">
+                        <div class="canvas-container">
+                            <canvas id="whiteboard-canvas" width="800" height="600"></canvas>
+                            <div class="canvas-overlay" id="canvas-overlay">
+                                <div class="placeholder">
+                                    <i class="fas fa-play-circle"></i>
+                                    <h3>Twoja animacja pojawi się tutaj</h3>
+                                    <p>Wypełnij formularz po lewej i kliknij "Generuj Animację"</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="controls">
+                            <button class="control-btn" id="play-btn">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="control-btn" id="pause-btn">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button class="control-btn" id="stop-btn">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <button class="control-btn" id="download-btn">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+
+                        <div class="script-panel" id="script-panel">
+                            <h3>Scenariusz</h3>
+                            <div class="script-content" id="script-content">
+                                <p>Scenariusz zostanie wygenerowany po utworzeniu animacji...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gallery Tab -->
+            <div class="tab-content" id="gallery-tab">
+                <div class="gallery-section">
+                    <h2>Twoje Animacje</h2>
+                    <div class="gallery-grid" id="gallery-grid">
+                        <div class="gallery-item sample">
+                            <div class="gallery-thumbnail">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div class="gallery-info">
+                                <h3>Przykładowa Animacja</h3>
+                                <p>Historia przedsiębiorczości</p>
+                                <div class="gallery-actions">
+                                    <button class="gallery-btn"><i class="fas fa-play"></i></button>
+                                    <button class="gallery-btn"><i class="fas fa-edit"></i></button>
+                                    <button class="gallery-btn"><i class="fas fa-download"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settings-tab">
+                <div class="settings-section">
+                    <h2>Ustawienia</h2>
+                    
+                    <div class="settings-group">
+                        <h3>API Configuration</h3>
+                        <div class="input-group">
+                            <label for="openai-key">OpenAI API Key:</label>
+                            <input type="password" id="openai-key" placeholder="sk-...">
+                            <small>Wymagane do generowania historii. Twój klucz jest przechowywany lokalnie.</small>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Domyślne Ustawienia</h3>
+                        <div class="input-group">
+                            <label for="default-language">Język:</label>
+                            <select id="default-language">
+                                <option value="pl">Polski</option>
+                                <option value="en">English</option>
+                                <option value="de">Deutsch</option>
+                                <option value="fr">Français</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="default-quality">Jakość animacji:</label>
+                            <select id="default-quality">
+                                <option value="high">Wysoka</option>
+                                <option value="medium" selected>Średnia</option>
+                                <option value="low">Niska</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="save-settings-btn">
+                        <i class="fas fa-save"></i>
+                        Zapisz Ustawienia
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <h3>Generuję twoją animację...</h3>
+                <p id="loading-status">Analizuję prompt...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
