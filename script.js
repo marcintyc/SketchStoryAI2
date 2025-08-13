@@ -684,9 +684,92 @@ Zakończenie
     }
 
     async generateVisualElements(steps) {
-        // This would integrate with image generation APIs
-        // For now, we'll use the predefined elements
-        return steps;
+        try {
+            // Generate AI images for each step if possible
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                
+                // Try to generate an image based on the step content
+                if (step.content && step.content.length > 10) {
+                    try {
+                        // For now, we'll create enhanced visual elements
+                        // In the future, this could integrate with DALL-E, Midjourney, or Stable Diffusion
+                        step.elements = this.generateEnhancedDrawingElements(step.content, step.style, i);
+                        
+                        // Add a small delay to avoid overwhelming the system
+                        await this.delay(100);
+                    } catch (error) {
+                        console.warn(`Could not generate visual elements for step ${i}:`, error);
+                        // Fallback to basic elements
+                        step.elements = this.generateDrawingElements(step.content, step.style, i);
+                    }
+                }
+            }
+            
+            return steps;
+        } catch (error) {
+            console.error('Error generating visual elements:', error);
+            // Return steps with basic elements if AI generation fails
+            return steps.map((step, i) => ({
+                ...step,
+                elements: this.generateDrawingElements(step.content, step.style, i)
+            }));
+        }
+    }
+
+    generateEnhancedDrawingElements(content, style, stepIndex = 0) {
+        const elements = [];
+        const contentLower = content.toLowerCase();
+        
+        // Position elements based on step to avoid overlap
+        const baseX = 50 + (stepIndex % 3) * 250;
+        const baseY = 50 + Math.floor(stepIndex / 3) * 150;
+        
+        // Enhanced keyword-based element generation
+        const keywords = {
+            'tytuł': () => this.createTextElement(content, 'title', style, baseX, baseY),
+            'tekst': () => this.createTextElement(content, 'text', style, baseX, baseY),
+            'strzałka': () => this.createArrowElement(style, baseX, baseY),
+            'ramka': () => this.createBoxElement(style, baseX, baseY),
+            'diagram': () => this.createDiagramElement(style, baseX, baseY),
+            'ikona': () => this.createIconElement(style, baseX, baseY),
+            'linia': () => this.createLineElement(style, baseX, baseY),
+            'wykres': () => this.createChartElement(style, baseX, baseY),
+            'circle': () => this.createCircleElement(style, baseX, baseY),
+            'box': () => this.createBoxElement(style, baseX, baseY),
+            'arrow': () => this.createArrowElement(style, baseX, baseY),
+            'startup': () => this.createStartupElements(style, baseX, baseY),
+            'biznes': () => this.createBusinessElements(style, baseX, baseY),
+            'edukacj': () => this.createEducationalElements(style, baseX, baseY),
+            'technolog': () => this.createTechElements(style, baseX, baseY)
+        };
+
+        let foundElements = 0;
+        Object.keys(keywords).forEach(keyword => {
+            if (contentLower.includes(keyword) && foundElements < 3) {
+                const element = keywords[keyword]();
+                if (element) {
+                    elements.push(element);
+                    foundElements++;
+                }
+            }
+        });
+
+        // Always add main text element if we don't have enough elements
+        if (elements.length < 2) {
+            elements.push(this.createTextElement(content, 'text', style, baseX, baseY + 30));
+        }
+
+        // Add contextual visual elements
+        if (contentLower.includes('wprowadz') || contentLower.includes('start')) {
+            elements.push(this.createArrowElement(style, baseX + 150, baseY));
+        } else if (contentLower.includes('główn') || contentLower.includes('treść')) {
+            elements.push(this.createBoxElement(style, baseX + 150, baseY));
+        } else if (contentLower.includes('podsumow') || contentLower.includes('zakończ')) {
+            elements.push(this.createDiagramElement(style, baseX + 150, baseY));
+        }
+
+        return elements.slice(0, 4); // Allow up to 4 elements
     }
 
     createAnimationTimeline() {
@@ -777,6 +860,7 @@ Zakończenie
 
     executeAnimationStep(step) {
         console.log('Executing step:', step.content);
+        console.log('Step elements:', step.elements);
         
         // Clear previous elements occasionally to avoid clutter
         if (this.fabricCanvas.getObjects().length > 10) {
@@ -784,17 +868,24 @@ Zakończenie
             this.fabricCanvas.backgroundColor = '#ffffff';
         }
         
-        step.elements.forEach((element, index) => {
-            setTimeout(() => {
-                this.drawElement(element);
-            }, index * 300); // Slower staggering
-        });
+        if (step.elements && step.elements.length > 0) {
+            step.elements.forEach((element, index) => {
+                console.log(`Drawing element ${index}:`, element);
+                setTimeout(() => {
+                    this.drawElement(element);
+                }, index * 300); // Slower staggering
+            });
+        } else {
+            console.warn('No elements to draw for step:', step);
+        }
     }
 
     drawElement(element) {
+        console.log('Drawing element:', element);
         let fabricObject;
 
-        switch (element.type) {
+        try {
+            switch (element.type) {
             case 'text':
                 fabricObject = new fabric.Text(element.content, {
                     left: element.x,
@@ -847,15 +938,21 @@ Zakończenie
                     selectable: false
                 });
                 break;
+
+            default:
+                console.warn('Unknown element type:', element.type);
+                return;
         }
 
         if (fabricObject) {
+            console.log('Created fabric object:', fabricObject);
             // Add drawing animation effect
             fabricObject.opacity = 0;
             fabricObject.selectable = false;
             fabricObject.evented = false;
             
             this.fabricCanvas.add(fabricObject);
+            console.log('Added to canvas, total objects:', this.fabricCanvas.getObjects().length);
             
             // Animate appearance with scaling effect
             fabricObject.set({
@@ -877,6 +974,11 @@ Zakończenie
                 duration: 600,
                 easing: fabric.util.ease.easeOutBack
             });
+            
+            this.fabricCanvas.renderAll();
+        }
+        } catch (error) {
+            console.error('Error drawing element:', error, element);
         }
     }
 
@@ -902,11 +1004,35 @@ Zakończenie
 
     updateScriptPanel(script) {
         const scriptContent = document.getElementById('script-content');
-        scriptContent.innerHTML = `<p>${script.replace(/\n/g, '</p><p>')}</p>`;
+        
+        // Clean up the script content - remove hashtags and format properly
+        let cleanScript = script
+            .replace(/#[^\s]+/g, '') // Remove hashtags
+            .replace(/\n\n+/g, '\n') // Remove multiple empty lines
+            .replace(/^\s+|\s+$/g, '') // Trim whitespace
+            .replace(/^[-•]\s*/gm, '') // Remove bullet points at start of lines
+            .replace(/^\d+\.?\s*/gm, ''); // Remove numbers at start of lines
+        
+        // Split into paragraphs and create HTML
+        const paragraphs = cleanScript.split('\n').filter(p => p.trim().length > 0);
+        const htmlContent = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+        
+        scriptContent.innerHTML = htmlContent || '<p>Scenariusz został wygenerowany.</p>';
     }
 
     hideCanvasOverlay() {
-        document.getElementById('canvas-overlay').classList.add('hidden');
+        try {
+            const overlay = document.getElementById('canvas-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                // Also ensure the canvas is visible and ready
+                if (this.fabricCanvas) {
+                    this.fabricCanvas.renderAll();
+                }
+            }
+        } catch (error) {
+            console.error('Error hiding canvas overlay:', error);
+        }
     }
 
     showLoadingOverlay() {
@@ -1096,6 +1222,51 @@ Zakończenie
             'grok': 'Grok'
         };
         return names[provider] || provider;
+    }
+
+    // Additional element creation functions
+    createCircleElement(style, x = null, y = null) {
+        return {
+            type: 'circle',
+            x: x || 100,
+            y: y || 100,
+            radius: 30,
+            stroke: this.getStyleColor(style),
+            fill: this.getStyleColor(style, 0.2),
+            strokeWidth: 2
+        };
+    }
+
+    createStartupElements(style, x = null, y = null) {
+        const baseX = x || 100;
+        const baseY = y || 100;
+        
+        // Return a startup-themed element
+        return this.createTextElement('🚀', 'text', style, baseX, baseY);
+    }
+
+    createBusinessElements(style, x = null, y = null) {
+        const baseX = x || 100;
+        const baseY = y || 100;
+        
+        // Return a business-themed element
+        return this.createChartElement(style, baseX, baseY);
+    }
+
+    createEducationalElements(style, x = null, y = null) {
+        const baseX = x || 100;
+        const baseY = y || 100;
+        
+        // Return an educational-themed element
+        return this.createDiagramElement(style, baseX, baseY);
+    }
+
+    createTechElements(style, x = null, y = null) {
+        const baseX = x || 100;
+        const baseY = y || 100;
+        
+        // Return a tech-themed element
+        return this.createBoxElement(style, baseX, baseY);
     }
 }
 
