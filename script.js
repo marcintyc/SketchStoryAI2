@@ -132,7 +132,20 @@ class SketchStoryAI {
             
         } catch (error) {
             console.error('Error generating story:', error);
-            alert('Wystąpił błąd podczas generowania animacji. Sprawdź klucz API i połączenie internetowe.');
+            
+            let errorMessage = 'Wystąpił błąd podczas generowania animacji.';
+            
+            if (error.message.includes('overloaded') || error.message.includes('503')) {
+                errorMessage = '🤖 Gemini API jest przeciążone. Spróbuj ponownie za chwilę lub przełącz na Demo mode.';
+            } else if (error.message.includes('QUOTA_EXCEEDED') || error.message.includes('429')) {
+                errorMessage = '⏰ Przekroczono limit requestów. Poczekaj minutę i spróbuj ponownie.';
+            } else if (error.message.includes('API_KEY_INVALID') || error.message.includes('401')) {
+                errorMessage = '🔑 Nieprawidłowy klucz API. Sprawdź klucz w ustawieniach.';
+            } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                errorMessage = '🌐 Problem z połączeniem internetowym. Sprawdź internet i spróbuj ponownie.';
+            }
+            
+            alert(errorMessage);
             this.hideLoadingOverlay();
         }
     }
@@ -186,7 +199,7 @@ class SketchStoryAI {
         return data.choices[0].message.content;
     }
 
-    async generateWithGemini(prompt, duration, voiceStyle) {
+    async generateWithGemini(prompt, duration, voiceStyle, retryCount = 0) {
         const apiKey = localStorage.getItem('gemini-api-key');
         if (!apiKey) {
             throw new Error('Brak klucza API dla Gemini');
@@ -238,6 +251,21 @@ class SketchStoryAI {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Gemini API Error:', response.status, response.statusText, errorData);
+                
+                // Handle overload with retry or fallback
+                if (response.status === 503 && retryCount < 2) {
+                    console.log(`Gemini overloaded, retrying in ${(retryCount + 1) * 2} seconds...`);
+                    await this.delay((retryCount + 1) * 2000);
+                    return await this.generateWithGemini(prompt, duration, voiceStyle, retryCount + 1);
+                }
+                
+                // If still overloaded after retries, fallback to demo
+                if (response.status === 503) {
+                    console.log('Gemini still overloaded, falling back to demo mode...');
+                    this.updateLoadingStatus('Gemini przeciążone - używam demo scenariusza...');
+                    return this.getDemoScript(prompt);
+                }
+                
                 throw new Error(`Gemini API error (${response.status}): ${errorData.error?.message || response.statusText}`);
             }
 
@@ -252,14 +280,24 @@ class SketchStoryAI {
             
         } catch (error) {
             console.error('Gemini generation error:', error);
+            
             if (error.message.includes('API_KEY_INVALID')) {
                 throw new Error('Nieprawidłowy klucz API dla Gemini. Sprawdź klucz w ustawieniach.');
             } else if (error.message.includes('QUOTA_EXCEEDED')) {
                 throw new Error('Przekroczono limit requestów dla Gemini. Spróbuj ponownie za chwilę.');
+            } else if (error.message.includes('overloaded') || error.message.includes('503')) {
+                // Network error or overload - fallback to demo
+                console.log('Network/overload error, falling back to demo...');
+                this.updateLoadingStatus('Problem z połączeniem - używam demo scenariusza...');
+                return this.getDemoScript(prompt);
             } else {
                 throw error;
             }
         }
+    }
+    
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     async generateWithGrok(prompt, duration, voiceStyle) {
@@ -297,24 +335,150 @@ class SketchStoryAI {
     }
 
     getDemoScript(prompt) {
-        return `Demo Scenariusz: ${prompt}
+        // Smart demo script based on prompt keywords
+        const promptLower = prompt.toLowerCase();
+        
+        if (promptLower.includes('startup') || promptLower.includes('biznes') || promptLower.includes('firma')) {
+            return this.getBusinessDemoScript(prompt);
+        } else if (promptLower.includes('edukacj') || promptLower.includes('nauka') || promptLower.includes('jak działa')) {
+            return this.getEducationalDemoScript(prompt);
+        } else if (promptLower.includes('marketing') || promptLower.includes('sprzedaż') || promptLower.includes('klient')) {
+            return this.getMarketingDemoScript(prompt);
+        } else if (promptLower.includes('technolog') || promptLower.includes('app') || promptLower.includes('kod')) {
+            return this.getTechDemoScript(prompt);
+        } else {
+            return this.getGenericDemoScript(prompt);
+        }
+    }
+    
+    getBusinessDemoScript(prompt) {
+        return `🚀 ${prompt}
 
-Scena 1: Wprowadzenie
+Wprowadzenie
+- Narysuj ikonę żarówki reprezentującą pomysł
+- Dodaj tekst "Wielka idea zaczyna się tutaj"
+- Stwórz strzałkę wskazującą rozwój
+
+Planowanie
+- Narysuj diagram z kluczowymi krokami
+- Dodaj ikony: zespół, finanse, produkt
+- Połącz elementy liniami pokazującymi proces
+
+Realizacja  
+- Stwórz wykres wzrostu
+- Dodaj tekst "Od pomysłu do sukcesu"
+- Narysuj rakietę symbolizującą start
+
+Sukces
+- Narysuj gwiazdkę jako symbol osiągnięcia
+- Dodaj wezwanie do działania
+- Zakończ inspirującym hasłem
+
+💡 To demo scenariusz. Dla lepszych rezultatów użyj Gemini API!`;
+    }
+    
+    getEducationalDemoScript(prompt) {
+        return `📚 ${prompt}
+
+Definicja
+- Narysuj tytuł tematu w ramce
+- Dodaj ikonę książki lub żarówki
+- Stwórz podkreślenie dla ważnych pojęć
+
+Wyjaśnienie
+- Narysuj diagram krok po kroku  
+- Dodaj strzałki pokazujące kolejność
+- Użyj prostych kształtów i ikon
+
+Przykłady
+- Stwórz ilustracje konkretnych przypadków
+- Dodaj symbole ✓ dla ważnych punktów
+- Połącz teoria z praktyką
+
+Podsumowanie
+- Narysuj podsumowujący diagram
+- Dodaj kluczowe wnioski
+- Zakończ znakiem zapytania dla refleksji
+
+🎓 Demo tryb - upgrade do Gemini dla pełnej mocy AI!`;
+    }
+    
+    getMarketingDemoScript(prompt) {
+        return `📈 ${prompt}
+
+Analiza
+- Narysuj wykres przedstawiający sytuację
+- Dodaj ikony reprezentujące targetowanie
+- Stwórz strzałki pokazujące trendy
+
+Strategia
+- Narysuj diagram z kanałami marketingu
+- Dodaj symbole: social media, email, content
+- Połącz elementy w spójną strategię
+
+Implementacja
+- Stwórz timeline z krokami działań
+- Dodaj checklistę najważniejszych zadań
+- Narysuj narzędzia i platformy
+
+Rezultaty
+- Narysuj wykres ROI i konwersji
+- Dodaj ikony sukcesu i wzrostu
+- Zakończ call-to-action
+
+🎯 To tylko demo! Gemini stworzy znacznie lepsze scenariusze!`;
+    }
+    
+    getTechDemoScript(prompt) {
+        return `💻 ${prompt}
+
+Architektura
+- Narysuj schemat systemu lub aplikacji
+- Dodaj prostokąty reprezentujące komponenty
+- Połącz elementy strzałkami danych
+
+Funkcjonalności
+- Stwórz listę głównych features
+- Dodaj ikony dla różnych funkcji
+- Narysuj flow użytkownika
+
+Technologie
+- Narysuj stack technologiczny
+- Dodaj logo/ikony technologii
+- Pokaż integracje między systemami
+
+Wdrożenie
+- Stwórz timeline projektu
+- Dodaj milestones i checkpointy
+- Zakończ wizją finalnego produktu
+
+⚡ Demo mode aktywny. Gemini da ci prawdziwe AI power!`;
+    }
+    
+    getGenericDemoScript(prompt) {
+        return `✨ ${prompt}
+
+Wprowadzenie
 - Narysuj tytuł "${prompt}" w centrum
-- Dodaj ramkę wokół tytułu
-- Narysuj strzałkę wskazującą w dół
+- Dodaj dekoracyjną ramkę wokół
+- Stwórz strzałkę wprowadzającą w temat
 
-Scena 2: Główna treść
-- Stwórz diagram pokazujący kluczowe elementy
-- Dodaj ikony reprezentujące główne punkty
-- Połącz elementy liniami
+Rozwój tematu
+- Narysuj diagram z głównymi punktami
+- Dodaj ikony dla każdego elementu
+- Połącz wszystko logicznym flow
 
-Scena 3: Podsumowanie
-- Narysuj podsumowujący wykres lub diagram
-- Dodaj znak zapytania zachęcający do działania
-- Zakończ logo lub wezwaniem do działania
+Szczegóły
+- Stwórz ilustracje supporting points
+- Dodaj symbole i annotations
+- Pokaż relacje między elementami
 
-To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonalność AI, dodaj swój klucz OpenAI API w ustawieniach.`;
+Zakończenie
+- Narysuj podsumowujący element
+- Dodaj call-to-action lub wniosek
+- Zakończ inspirującym akcentem
+
+🎨 To podstawowy demo. Gemini API = nieograniczona kreatywność!`;
     }
 
     async createAnimationSteps(script, style, duration) {
