@@ -92,10 +92,11 @@ npx http-server
 ### 1. Wybór dostawcy AI (Opcjonalny - ale zalecany!)
 
 **🎉 ZALECANE: Google Gemini (DARMOWY!)**
-1. Uzyskaj DARMOWY klucz z [Google AI Studio](https://makersuite.google.com/app/apikey)
+1. Uzyskaj DARMOWY klucz z [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Wybierz "Google Gemini" w ustawieniach
 3. Wprowadź klucz API
-4. Ciesz się pełną funkcjonalnością za darmo!
+4. **Przetestuj połączenie** (przycisk w ustawieniach)
+5. Ciesz się pełną funkcjonalnością za darmo!
 
 **Alternatywnie:**
 - **OpenAI GPT**: [OpenAI Platform](https://platform.openai.com/api-keys) (płatny)

@@ -65,6 +65,9 @@ class SketchStoryAI {
         
         // AI Provider change
         document.getElementById('ai-provider').addEventListener('change', (e) => this.onProviderChange(e.target.value));
+        
+        // Test API button
+        document.getElementById('test-api-btn').addEventListener('click', () => this.testAPIConnection());
     }
 
     switchTab(tabName) {
@@ -193,30 +196,70 @@ class SketchStoryAI {
         
         const userPrompt = `${systemPrompt}\n\nStwórz scenariusz animacji whiteboard dla tematu: "${prompt}". Uwzględnij opisy elementów wizualnych, które mają być narysowane w każdej scenie.`;
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: userPrompt
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1500,
-                }
-            })
-        });
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: userPrompt
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 1500,
+                        topK: 40,
+                        topP: 0.95,
+                    },
+                    safetySettings: [
+                        {
+                            category: "HARM_CATEGORY_HARASSMENT",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        },
+                        {
+                            category: "HARM_CATEGORY_HATE_SPEECH",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        },
+                        {
+                            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        },
+                        {
+                            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                        }
+                    ]
+                })
+            });
 
-        if (!response.ok) {
-            throw new Error('Gemini API error: ' + response.statusText);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Gemini API Error:', response.status, response.statusText, errorData);
+                throw new Error(`Gemini API error (${response.status}): ${errorData.error?.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+                console.error('Unexpected Gemini response:', data);
+                throw new Error('Gemini zwróciło nieprawidłową odpowiedź');
+            }
+
+            return data.candidates[0].content.parts[0].text;
+            
+        } catch (error) {
+            console.error('Gemini generation error:', error);
+            if (error.message.includes('API_KEY_INVALID')) {
+                throw new Error('Nieprawidłowy klucz API dla Gemini. Sprawdź klucz w ustawieniach.');
+            } else if (error.message.includes('QUOTA_EXCEEDED')) {
+                throw new Error('Przekroczono limit requestów dla Gemini. Spróbuj ponownie za chwilę.');
+            } else {
+                throw error;
+            }
         }
-
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
     }
 
     async generateWithGrok(prompt, duration, voiceStyle) {
@@ -669,6 +712,14 @@ To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonaln
         document.getElementById('gemini-config').style.display = 'none';
         document.getElementById('grok-config').style.display = 'none';
         
+        // Show/hide test button
+        const testBtn = document.getElementById('test-api-btn');
+        if (provider === 'demo') {
+            testBtn.style.display = 'none';
+        } else {
+            testBtn.style.display = 'block';
+        }
+        
         // Show relevant config section
         if (provider !== 'demo') {
             document.getElementById(`${provider}-config`).style.display = 'block';
@@ -768,6 +819,54 @@ To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonaln
         document.getElementById('default-quality').value = defaultQuality;
         
         this.onProviderChange(provider);
+    }
+
+    async testAPIConnection() {
+        const provider = localStorage.getItem('ai-provider') || 'demo';
+        const testBtn = document.getElementById('test-api-btn');
+        const statusElement = document.getElementById('api-status');
+        const statusText = document.getElementById('api-status-text');
+        
+        if (provider === 'demo') return;
+        
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testowanie...';
+        
+        try {
+            // Test with a simple prompt
+            const testPrompt = 'Test';
+            await this.generateScript(testPrompt, 30, 'friendly');
+            
+            // Success
+            statusElement.className = 'api-status connected';
+            statusText.textContent = `${this.getProviderName(provider)} - Test połączenia udany ✓`;
+            testBtn.innerHTML = '<i class="fas fa-check"></i> Test udany!';
+            
+            setTimeout(() => {
+                testBtn.innerHTML = '<i class="fas fa-flask"></i> Testuj połączenie API';
+                testBtn.disabled = false;
+            }, 2000);
+            
+        } catch (error) {
+            // Error
+            statusElement.className = 'api-status error';
+            statusText.textContent = `${this.getProviderName(provider)} - Błąd: ${error.message}`;
+            testBtn.innerHTML = '<i class="fas fa-times"></i> Test nieudany';
+            
+            setTimeout(() => {
+                testBtn.innerHTML = '<i class="fas fa-flask"></i> Testuj połączenie API';
+                testBtn.disabled = false;
+            }, 3000);
+        }
+    }
+    
+    getProviderName(provider) {
+        const names = {
+            'openai': 'OpenAI',
+            'gemini': 'Google Gemini',
+            'grok': 'Grok'
+        };
+        return names[provider] || provider;
     }
 }
 

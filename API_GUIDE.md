@@ -30,11 +30,13 @@
 ### 🎉 Google Gemini (DARMOWY!) - ZALECANE
 
 #### Krok 1: Uzyskaj klucz API
-1. Idź na [Google AI Studio](https://makersuite.google.com/app/apikey)
+1. Idź na [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Zaloguj się kontem Google
 3. Kliknij **"Create API Key"**
 4. Wybierz projekt (lub utwórz nowy)
 5. Skopiuj klucz (zaczyna się od `AIza...`)
+
+**⚠️ WAŻNE:** Nowy klucz może potrzebować do 5 minut aktywacji!
 
 #### Krok 2: Konfiguracja w aplikacji
 1. Otwórz **SketchStory AI**
