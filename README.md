@@ -43,7 +43,9 @@ Platforma AI, która tworzy animacje whiteboard i automatycznie generuje wciąga
 - **Vanilla JavaScript**: Bez zależności od frameworków
 
 ### AI & APIs:
-- **OpenAI API**: Generowanie treści i scenariuszy
+- **Multi-AI Support**: OpenAI GPT, Google Gemini, Grok (X.AI)
+- **Google Gemini**: DARMOWY klucz API!
+- **Fallback Demo**: Działa bez żadnego klucza
 - **Web Speech API**: Text-to-speech (planowane)
 - **Canvas API**: Eksport animacji
 
@@ -87,14 +89,20 @@ npx http-server
 
 ## ⚙️ Konfiguracja
 
-### 1. Klucz OpenAI API (Opcjonalny)
-Aby uzyskać pełną funkcjonalność AI:
-1. Uzyskaj klucz API z [OpenAI](https://platform.openai.com/api-keys)
-2. Przejdź do zakładki "Ustawienia" w aplikacji
-3. Wprowadź swój klucz API
-4. Klucz jest przechowywany lokalnie w przeglądarce
+### 1. Wybór dostawcy AI (Opcjonalny - ale zalecany!)
 
-**Bez klucza API:** Aplikacja działa z demo scenariuszami
+**🎉 ZALECANE: Google Gemini (DARMOWY!)**
+1. Uzyskaj DARMOWY klucz z [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Wybierz "Google Gemini" w ustawieniach
+3. Wprowadź klucz API
+4. Ciesz się pełną funkcjonalnością za darmo!
+
+**Alternatywnie:**
+- **OpenAI GPT**: [OpenAI Platform](https://platform.openai.com/api-keys) (płatny)
+- **Grok**: [X.AI Console](https://console.x.ai/) (płatny)
+- **Demo mode**: Bez klucza - podstawowe scenariusze
+
+**Wszystkie klucze** są przechowywane lokalnie w przeglądarce!
 
 ### 2. Ustawienia domyślne
 - **Język**: Polski, Angielski, Niemiecki, Francuski

@@ -470,6 +470,46 @@ body {
     transform: translateY(-2px);
 }
 
+.api-status {
+    background: #f0f9ff;
+    border: 1px solid #e0f2fe;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.api-status p {
+    margin: 0;
+    color: #0369a1;
+}
+
+.api-status.connected {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.api-status.connected p {
+    color: #059669;
+}
+
+.api-status.error {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.api-status.error p {
+    color: #dc2626;
+}
+
+.input-group small a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.input-group small a:hover {
+    text-decoration: underline;
+}
+
 /* Loading Overlay */
 .loading-overlay {
     position: fixed;

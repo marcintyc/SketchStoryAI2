@@ -176,11 +176,37 @@
                     <h2>Ustawienia</h2>
                     
                     <div class="settings-group">
-                        <h3>API Configuration</h3>
+                        <h3>AI Provider Configuration</h3>
                         <div class="input-group">
+                            <label for="ai-provider">Dostawca AI:</label>
+                            <select id="ai-provider">
+                                <option value="demo">Demo (bez klucza)</option>
+                                <option value="openai">OpenAI GPT</option>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="grok">Grok (X.AI)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group" id="openai-config" style="display: none;">
                             <label for="openai-key">OpenAI API Key:</label>
                             <input type="password" id="openai-key" placeholder="sk-...">
-                            <small>Wymagane do generowania historii. Twój klucz jest przechowywany lokalnie.</small>
+                            <small>Pobierz z <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a></small>
+                        </div>
+                        
+                        <div class="input-group" id="gemini-config" style="display: none;">
+                            <label for="gemini-key">Google Gemini API Key:</label>
+                            <input type="password" id="gemini-key" placeholder="AI...">
+                            <small>Pobierz z <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a> (DARMOWY!)</small>
+                        </div>
+                        
+                        <div class="input-group" id="grok-config" style="display: none;">
+                            <label for="grok-key">Grok API Key:</label>
+                            <input type="password" id="grok-key" placeholder="xai-...">
+                            <small>Pobierz z <a href="https://console.x.ai/" target="_blank">X.AI Console</a></small>
+                        </div>
+                        
+                        <div class="api-status" id="api-status">
+                            <p><strong>Status:</strong> <span id="api-status-text">Demo mode - podstawowe scenariusze</span></p>
                         </div>
                     </div>
 

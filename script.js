@@ -62,6 +62,9 @@ class SketchStoryAI {
 
         // Settings
         document.querySelector('.save-settings-btn').addEventListener('click', () => this.saveSettings());
+        
+        // AI Provider change
+        document.getElementById('ai-provider').addEventListener('change', (e) => this.onProviderChange(e.target.value));
     }
 
     switchTab(tabName) {
@@ -132,10 +135,24 @@ class SketchStoryAI {
     }
 
     async generateScript(prompt, duration, voiceStyle) {
+        const provider = localStorage.getItem('ai-provider') || 'demo';
+        
+        switch (provider) {
+            case 'openai':
+                return await this.generateWithOpenAI(prompt, duration, voiceStyle);
+            case 'gemini':
+                return await this.generateWithGemini(prompt, duration, voiceStyle);
+            case 'grok':
+                return await this.generateWithGrok(prompt, duration, voiceStyle);
+            default:
+                return this.getDemoScript(prompt);
+        }
+    }
+
+    async generateWithOpenAI(prompt, duration, voiceStyle) {
         const apiKey = localStorage.getItem('openai-api-key');
         if (!apiKey) {
-            // Return demo script if no API key
-            return this.getDemoScript(prompt);
+            throw new Error('Brak klucza API dla OpenAI');
         }
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -159,7 +176,77 @@ class SketchStoryAI {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to generate script');
+            throw new Error('OpenAI API error: ' + response.statusText);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    }
+
+    async generateWithGemini(prompt, duration, voiceStyle) {
+        const apiKey = localStorage.getItem('gemini-api-key');
+        if (!apiKey) {
+            throw new Error('Brak klucza API dla Gemini');
+        }
+
+        const systemPrompt = `Jesteś ekspertem od tworzenia scenariuszy do animacji whiteboard. Twórz angażujące, wciągające historie dostosowane do stylu narracji: ${voiceStyle}. Scenariusz powinien trwać około ${duration} sekund. Podziel treść na logiczne sekcje z opisami wizualnymi.`;
+        
+        const userPrompt = `${systemPrompt}\n\nStwórz scenariusz animacji whiteboard dla tematu: "${prompt}". Uwzględnij opisy elementów wizualnych, które mają być narysowane w każdej scenie.`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: userPrompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1500,
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Gemini API error: ' + response.statusText);
+        }
+
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+    }
+
+    async generateWithGrok(prompt, duration, voiceStyle) {
+        const apiKey = localStorage.getItem('grok-api-key');
+        if (!apiKey) {
+            throw new Error('Brak klucza API dla Grok');
+        }
+
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                messages: [{
+                    role: 'system',
+                    content: `Jesteś ekspertem od tworzenia scenariuszy do animacji whiteboard. Twórz angażujące, wciągające historie dostosowane do stylu narracji: ${voiceStyle}. Scenariusz powinien trwać około ${duration} sekund. Podziel treść na logiczne sekcje z opisami wizualnymi.`
+                }, {
+                    role: 'user',
+                    content: `Stwórz scenariusz animacji whiteboard dla tematu: "${prompt}". Uwzględnij opisy elementów wizualnych, które mają być narysowane w każdej scenie.`
+                }],
+                model: 'grok-beta',
+                stream: false,
+                temperature: 0.7
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Grok API error: ' + response.statusText);
         }
 
         const data = await response.json();
@@ -576,30 +663,111 @@ To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonaln
         link.click();
     }
 
+    onProviderChange(provider) {
+        // Hide all config sections
+        document.getElementById('openai-config').style.display = 'none';
+        document.getElementById('gemini-config').style.display = 'none';
+        document.getElementById('grok-config').style.display = 'none';
+        
+        // Show relevant config section
+        if (provider !== 'demo') {
+            document.getElementById(`${provider}-config`).style.display = 'block';
+        }
+        
+        this.updateAPIStatus(provider);
+    }
+
+    updateAPIStatus(provider) {
+        const statusElement = document.getElementById('api-status');
+        const statusText = document.getElementById('api-status-text');
+        
+        statusElement.className = 'api-status';
+        
+        switch (provider) {
+            case 'demo':
+                statusText.textContent = 'Demo mode - podstawowe scenariusze';
+                break;
+            case 'openai':
+                const openaiKey = localStorage.getItem('openai-api-key');
+                if (openaiKey) {
+                    statusElement.classList.add('connected');
+                    statusText.textContent = 'OpenAI - Połączono ✓';
+                } else {
+                    statusText.textContent = 'OpenAI - Wymagany klucz API';
+                }
+                break;
+            case 'gemini':
+                const geminiKey = localStorage.getItem('gemini-api-key');
+                if (geminiKey) {
+                    statusElement.classList.add('connected');
+                    statusText.textContent = 'Google Gemini - Połączono ✓ (DARMOWY!)';
+                } else {
+                    statusText.textContent = 'Google Gemini - Wymagany klucz API (DARMOWY!)';
+                }
+                break;
+            case 'grok':
+                const grokKey = localStorage.getItem('grok-api-key');
+                if (grokKey) {
+                    statusElement.classList.add('connected');
+                    statusText.textContent = 'Grok - Połączono ✓';
+                } else {
+                    statusText.textContent = 'Grok - Wymagany klucz API';
+                }
+                break;
+        }
+    }
+
     saveSettings() {
+        const provider = document.getElementById('ai-provider').value;
         const openaiKey = document.getElementById('openai-key').value;
+        const geminiKey = document.getElementById('gemini-key').value;
+        const grokKey = document.getElementById('grok-key').value;
         const defaultLanguage = document.getElementById('default-language').value;
         const defaultQuality = document.getElementById('default-quality').value;
 
+        localStorage.setItem('ai-provider', provider);
+        
         if (openaiKey) {
             localStorage.setItem('openai-api-key', openaiKey);
         }
+        if (geminiKey) {
+            localStorage.setItem('gemini-api-key', geminiKey);
+        }
+        if (grokKey) {
+            localStorage.setItem('grok-api-key', grokKey);
+        }
+        
         localStorage.setItem('default-language', defaultLanguage);
         localStorage.setItem('default-quality', defaultQuality);
 
+        this.updateAPIStatus(provider);
         alert('Ustawienia zostały zapisane!');
     }
 
     loadSettings() {
+        const provider = localStorage.getItem('ai-provider') || 'demo';
         const openaiKey = localStorage.getItem('openai-api-key');
+        const geminiKey = localStorage.getItem('gemini-api-key');
+        const grokKey = localStorage.getItem('grok-api-key');
         const defaultLanguage = localStorage.getItem('default-language') || 'pl';
         const defaultQuality = localStorage.getItem('default-quality') || 'medium';
 
+        document.getElementById('ai-provider').value = provider;
+        
         if (openaiKey) {
             document.getElementById('openai-key').value = openaiKey;
         }
+        if (geminiKey) {
+            document.getElementById('gemini-key').value = geminiKey;
+        }
+        if (grokKey) {
+            document.getElementById('grok-key').value = grokKey;
+        }
+        
         document.getElementById('default-language').value = defaultLanguage;
         document.getElementById('default-quality').value = defaultQuality;
+        
+        this.onProviderChange(provider);
     }
 }
 
