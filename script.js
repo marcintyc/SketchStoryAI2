@@ -320,145 +320,177 @@ To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonaln
     async createAnimationSteps(script, style, duration) {
         // Parse script and create animation steps
         const sections = script.split('\n\n').filter(section => section.trim());
-        const stepsPerSection = Math.max(2, Math.floor(duration / sections.length / 2));
+        const maxSteps = Math.min(10, sections.length); // Limit total steps
         
         const steps = [];
         let currentTime = 0;
-        const stepDuration = duration / (sections.length * stepsPerSection);
+        const stepDuration = duration / maxSteps;
 
-        sections.forEach((section, sectionIndex) => {
+        sections.slice(0, maxSteps).forEach((section, sectionIndex) => {
             const lines = section.split('\n').filter(line => line.trim());
+            const mainLine = lines.find(line => line.includes('-') || line.length > 10) || lines[0] || section;
             
-            for (let i = 0; i < stepsPerSection; i++) {
-                steps.push({
-                    time: currentTime,
-                    duration: stepDuration,
-                    type: 'draw',
-                    content: lines[i % lines.length] || '',
-                    section: sectionIndex,
-                    style: style,
-                    elements: this.generateDrawingElements(lines[i % lines.length] || '', style)
-                });
-                currentTime += stepDuration;
-            }
+            steps.push({
+                time: currentTime,
+                duration: stepDuration,
+                type: 'draw',
+                content: this.cleanContent(mainLine),
+                section: sectionIndex,
+                style: style,
+                elements: this.generateDrawingElements(mainLine, style, sectionIndex)
+            });
+            currentTime += stepDuration;
         });
 
+        console.log('Created animation steps:', steps.length);
         return steps;
     }
+    
+    cleanContent(content) {
+        return content
+            .replace(/^[-•]\s*/, '') // Remove bullet points
+            .replace(/^\d+\.?\s*/, '') // Remove numbers
+            .replace(/Scena \d+:?\s*/i, '') // Remove "Scena X:"
+            .trim()
+            .substring(0, 100); // Limit length
+    }
 
-    generateDrawingElements(content, style) {
+    generateDrawingElements(content, style, stepIndex = 0) {
         const elements = [];
-        const canvas = this.fabricCanvas;
+        const contentLower = content.toLowerCase();
+        
+        // Position elements based on step to avoid overlap
+        const baseX = 50 + (stepIndex % 3) * 250;
+        const baseY = 50 + Math.floor(stepIndex / 3) * 150;
         
         // Simple keyword-based element generation
         const keywords = {
-            'tytuł': () => this.createTextElement(content, 'title', style),
-            'tekst': () => this.createTextElement(content, 'text', style),
-            'strzałka': () => this.createArrowElement(style),
-            'ramka': () => this.createBoxElement(style),
-            'diagram': () => this.createDiagramElement(style),
-            'ikona': () => this.createIconElement(style),
-            'linia': () => this.createLineElement(style),
-            'wykres': () => this.createChartElement(style)
+            'tytuł': () => this.createTextElement(content, 'title', style, baseX, baseY),
+            'tekst': () => this.createTextElement(content, 'text', style, baseX, baseY),
+            'strzałka': () => this.createArrowElement(style, baseX, baseY),
+            'ramka': () => this.createBoxElement(style, baseX, baseY),
+            'diagram': () => this.createDiagramElement(style, baseX, baseY),
+            'ikona': () => this.createIconElement(style, baseX, baseY),
+            'linia': () => this.createLineElement(style, baseX, baseY),
+            'wykres': () => this.createChartElement(style, baseX, baseY),
+            'circle': () => this.createDiagramElement(style, baseX, baseY),
+            'box': () => this.createBoxElement(style, baseX, baseY),
+            'arrow': () => this.createArrowElement(style, baseX, baseY)
         };
 
+        let foundElements = 0;
         Object.keys(keywords).forEach(keyword => {
-            if (content.toLowerCase().includes(keyword)) {
+            if (contentLower.includes(keyword) && foundElements < 2) {
                 elements.push(keywords[keyword]());
+                foundElements++;
             }
         });
 
-        if (elements.length === 0) {
-            elements.push(this.createTextElement(content, 'text', style));
+        // Always add main text element
+        if (elements.length === 0 || !elements.some(el => el.type === 'text')) {
+            elements.push(this.createTextElement(content, 'text', style, baseX, baseY + 30));
         }
 
-        return elements;
+        // Add visual element based on content context
+        if (contentLower.includes('wprowadz') || contentLower.includes('start')) {
+            elements.push(this.createArrowElement(style, baseX + 150, baseY));
+        } else if (contentLower.includes('główn') || contentLower.includes('treść')) {
+            elements.push(this.createBoxElement(style, baseX + 150, baseY));
+        } else if (contentLower.includes('podsumow') || contentLower.includes('zakończ')) {
+            elements.push(this.createDiagramElement(style, baseX + 150, baseY));
+        }
+
+        return elements.slice(0, 3); // Limit to 3 elements max
     }
 
-    createTextElement(text, type, style) {
-        const fontSize = type === 'title' ? 24 : 16;
+    createTextElement(text, type, style, x = null, y = null) {
+        const fontSize = type === 'title' ? 20 : 14;
         const color = this.getStyleColor(style);
         
         return {
             type: 'text',
-            content: text.substring(0, 50), // Limit text length
+            content: text.substring(0, 60), // Limit text length
             fontSize: fontSize,
             color: color,
-            x: Math.random() * 300 + 50,
-            y: Math.random() * 200 + 50,
+            x: x || (Math.random() * 200 + 50),
+            y: y || (Math.random() * 150 + 50),
             fontFamily: this.getStyleFont(style)
         };
     }
 
-    createArrowElement(style) {
+    createArrowElement(style, x = null, y = null) {
+        const startX = x || 100;
+        const startY = y || 100;
         return {
             type: 'arrow',
-            x1: Math.random() * 200 + 100,
-            y1: Math.random() * 150 + 100,
-            x2: Math.random() * 200 + 300,
-            y2: Math.random() * 150 + 200,
+            x1: startX,
+            y1: startY,
+            x2: startX + 80,
+            y2: startY + 40,
             color: this.getStyleColor(style),
-            strokeWidth: 2
+            strokeWidth: 3
         };
     }
 
-    createBoxElement(style) {
+    createBoxElement(style, x = null, y = null) {
         return {
             type: 'rectangle',
-            x: Math.random() * 300 + 50,
-            y: Math.random() * 200 + 50,
-            width: Math.random() * 150 + 100,
-            height: Math.random() * 100 + 50,
+            x: x || 100,
+            y: y || 100,
+            width: 120,
+            height: 80,
             stroke: this.getStyleColor(style),
             fill: 'transparent',
             strokeWidth: 2
         };
     }
 
-    createLineElement(style) {
+    createLineElement(style, x = null, y = null) {
+        const startX = x || 100;
+        const startY = y || 100;
         return {
             type: 'line',
-            x1: Math.random() * 300 + 50,
-            y1: Math.random() * 200 + 100,
-            x2: Math.random() * 300 + 200,
-            y2: Math.random() * 200 + 150,
+            x1: startX,
+            y1: startY,
+            x2: startX + 100,
+            y2: startY,
             stroke: this.getStyleColor(style),
             strokeWidth: 2
         };
     }
 
-    createDiagramElement(style) {
+    createDiagramElement(style, x = null, y = null) {
         return {
             type: 'circle',
-            x: Math.random() * 300 + 100,
-            y: Math.random() * 200 + 100,
-            radius: Math.random() * 50 + 30,
+            x: x || 150,
+            y: y || 150,
+            radius: 40,
             stroke: this.getStyleColor(style),
             fill: 'transparent',
             strokeWidth: 2
         };
     }
 
-    createIconElement(style) {
+    createIconElement(style, x = null, y = null) {
         const icons = ['★', '♦', '●', '▲', '■'];
         return {
             type: 'text',
             content: icons[Math.floor(Math.random() * icons.length)],
-            fontSize: 20,
+            fontSize: 24,
             color: this.getStyleColor(style),
-            x: Math.random() * 400 + 50,
-            y: Math.random() * 250 + 50,
+            x: x || 100,
+            y: y || 100,
             fontFamily: 'Arial'
         };
     }
 
-    createChartElement(style) {
+    createChartElement(style, x = null, y = null) {
         return {
             type: 'rectangle',
-            x: Math.random() * 200 + 100,
-            y: Math.random() * 150 + 100,
-            width: Math.random() * 100 + 80,
-            height: Math.random() * 80 + 40,
+            x: x || 100,
+            y: y || 100,
+            width: 100,
+            height: 60,
             stroke: this.getStyleColor(style),
             fill: this.getStyleColor(style, 0.2),
             strokeWidth: 2
@@ -530,20 +562,26 @@ To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonaln
         this.isPaused = false;
         this.currentStep = 0;
         this.progress = 0;
+        this.currentTime = 0;
+        this.executedSteps = new Set();
         
         if (this.animationLoop) {
             clearInterval(this.animationLoop);
+            this.animationLoop = null;
         }
         
         this.fabricCanvas.clear();
+        this.fabricCanvas.backgroundColor = '#ffffff';
+        this.fabricCanvas.renderAll();
         this.updateProgressBar();
     }
 
     startAnimationLoop() {
         const totalDuration = this.animationSteps.reduce((sum, step) => sum + step.duration, 0);
-        const stepInterval = 100; // ms
+        const stepInterval = 500; // Slower for better control
         
-        let currentTime = 0;
+        this.currentTime = 0;
+        this.executedSteps = new Set(); // Track executed steps
         
         this.animationLoop = setInterval(() => {
             if (!this.isPlaying || this.isPaused) {
@@ -551,32 +589,41 @@ To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonaln
                 return;
             }
 
-            currentTime += stepInterval / 1000; // Convert to seconds
-            this.progress = (currentTime / totalDuration) * 100;
+            this.currentTime += stepInterval / 1000; // Convert to seconds
+            this.progress = (this.currentTime / totalDuration) * 100;
             this.updateProgressBar();
 
             // Find current animation step
-            const activeStep = this.animationSteps.find(step => 
-                currentTime >= step.time && currentTime < step.time + step.duration
+            const activeStepIndex = this.animationSteps.findIndex(step => 
+                this.currentTime >= step.time && this.currentTime < step.time + step.duration
             );
 
-            if (activeStep && this.currentStep !== this.animationSteps.indexOf(activeStep)) {
-                this.currentStep = this.animationSteps.indexOf(activeStep);
-                this.executeAnimationStep(activeStep);
+            // Execute step only once
+            if (activeStepIndex !== -1 && !this.executedSteps.has(activeStepIndex)) {
+                this.executedSteps.add(activeStepIndex);
+                this.executeAnimationStep(this.animationSteps[activeStepIndex]);
             }
 
             // Check if animation is complete
-            if (currentTime >= totalDuration) {
+            if (this.currentTime >= totalDuration) {
                 this.stopAnimation();
             }
         }, stepInterval);
     }
 
     executeAnimationStep(step) {
+        console.log('Executing step:', step.content);
+        
+        // Clear previous elements occasionally to avoid clutter
+        if (this.fabricCanvas.getObjects().length > 10) {
+            this.fabricCanvas.clear();
+            this.fabricCanvas.backgroundColor = '#ffffff';
+        }
+        
         step.elements.forEach((element, index) => {
             setTimeout(() => {
                 this.drawElement(element);
-            }, index * 200); // Stagger element appearance
+            }, index * 300); // Slower staggering
         });
     }
 
@@ -641,12 +688,30 @@ To jest przykładowy scenariusz demonstracyjny. Aby uzyskać pełną funkcjonaln
         if (fabricObject) {
             // Add drawing animation effect
             fabricObject.opacity = 0;
+            fabricObject.selectable = false;
+            fabricObject.evented = false;
+            
             this.fabricCanvas.add(fabricObject);
             
-            // Animate appearance
+            // Animate appearance with scaling effect
+            fabricObject.set({
+                scaleX: 0.1,
+                scaleY: 0.1
+            });
+            
             fabricObject.animate('opacity', 1, {
-                duration: 500,
-                easing: fabric.util.ease.easeOutCubic
+                duration: 600,
+                easing: fabric.util.ease.easeOutBack
+            });
+            
+            fabricObject.animate('scaleX', 1, {
+                duration: 600,
+                easing: fabric.util.ease.easeOutBack
+            });
+            
+            fabricObject.animate('scaleY', 1, {
+                duration: 600,
+                easing: fabric.util.ease.easeOutBack
             });
         }
     }
