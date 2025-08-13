@@ -99,6 +99,9 @@ class SketchStoryAI {
             return;
         }
 
+        // Cleanup previous AI images
+        this.cleanupAIImageBlobs();
+
         this.showLoadingOverlay();
         
         try {
@@ -112,7 +115,7 @@ class SketchStoryAI {
             
             // Step 3: Generate visual elements
             if (autoImages) {
-                this.updateLoadingStatus('Generuję elementy wizualne...');
+                this.updateLoadingStatus('Generuję obrazy AI...');
                 await this.generateVisualElements(animationSteps);
             }
             
@@ -685,35 +688,300 @@ Zakończenie
 
     async generateVisualElements(steps) {
         try {
-            // Generate AI images for each step if possible
+            console.log('Starting AI image generation for', steps.length, 'steps...');
+            
+            // Generate AI images for each step
             for (let i = 0; i < steps.length; i++) {
                 const step = steps[i];
                 
-                // Try to generate an image based on the step content
                 if (step.content && step.content.length > 10) {
                     try {
-                        // For now, we'll create enhanced visual elements
-                        // In the future, this could integrate with DALL-E, Midjourney, or Stable Diffusion
-                        step.elements = this.generateEnhancedDrawingElements(step.content, step.style, i);
+                        this.updateLoadingStatus(`Generuję obraz AI dla kroku ${i + 1}/${steps.length}...`);
+                        console.log(`Generating AI image for step ${i}:`, step.content);
                         
-                        // Add a small delay to avoid overwhelming the system
-                        await this.delay(100);
+                        // Generate AI image based on content and style
+                        const aiImage = await this.generateAIImage(step.content, step.style, i);
+                        
+                        if (aiImage) {
+                            // Create image element with AI-generated image
+                            step.elements = [this.createAIImageElement(aiImage, step.content, step.style, i)];
+                            console.log(`✅ Generated AI image for step ${i}:`, aiImage);
+                        } else {
+                            // Fallback to enhanced elements if AI generation fails
+                            console.log(`⚠️ AI generation failed for step ${i}, using fallback elements`);
+                            step.elements = this.generateEnhancedDrawingElements(step.content, step.style, i);
+                        }
+                        
+                        // Add delay to avoid overwhelming APIs
+                        await this.delay(500);
+                        
                     } catch (error) {
-                        console.warn(`Could not generate visual elements for step ${i}:`, error);
-                        // Fallback to basic elements
-                        step.elements = this.generateDrawingElements(step.content, step.style, i);
+                        console.warn(`❌ AI image generation failed for step ${i}:`, error);
+                        // Fallback to enhanced elements
+                        step.elements = this.generateEnhancedDrawingElements(step.content, step.style, i);
                     }
+                } else {
+                    console.log(`Step ${i} content too short, using fallback elements`);
+                    step.elements = this.generateEnhancedDrawingElements(step.content, step.style, i);
                 }
             }
             
+            console.log('🎉 AI image generation completed');
             return steps;
+            
         } catch (error) {
-            console.error('Error generating visual elements:', error);
-            // Return steps with basic elements if AI generation fails
+            console.error('💥 Error in AI image generation:', error);
+            // Return steps with basic elements if everything fails
             return steps.map((step, i) => ({
                 ...step,
-                elements: this.generateDrawingElements(step.content, step.style, i)
+                elements: this.generateEnhancedDrawingElements(step.content, step.style, i)
             }));
+        }
+    }
+
+    async generateAIImage(content, style, stepIndex) {
+        const provider = localStorage.getItem('ai-provider') || 'demo';
+        console.log(`🎨 Generating AI image with provider: ${provider}`);
+        
+        try {
+            switch (provider) {
+                case 'openai':
+                    console.log('🚀 Using DALL-E for image generation...');
+                    return await this.generateWithDALLE(content, style);
+                case 'gemini':
+                    console.log('🤖 Using Hugging Face (Stable Diffusion) for image generation...');
+                    return await this.generateWithHuggingFace(content, style);
+                case 'grok':
+                    console.log('🤖 Using Hugging Face (Stable Diffusion) for image generation...');
+                    return await this.generateWithHuggingFace(content, style);
+                default:
+                    console.log('🎭 Demo mode - no AI image generation');
+                    // Demo mode - generate enhanced visual elements
+                    return null;
+            }
+        } catch (error) {
+            console.error(`💥 AI image generation failed for ${provider}:`, error);
+            return null;
+        }
+    }
+
+    async generateWithDALLE(content, style) {
+        const apiKey = localStorage.getItem('openai-api-key');
+        if (!apiKey) {
+            throw new Error('Brak klucza API dla OpenAI');
+        }
+
+        // Create a prompt for DALL-E based on content and style
+        const prompt = this.createImagePrompt(content, style);
+        
+        try {
+            const response = await fetch('https://api.openai.com/v1/images/generations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    n: 1,
+                    size: '512x512',
+                    style: 'vivid',
+                    quality: 'standard'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`DALL-E API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return {
+                type: 'ai-image',
+                url: data.data[0].url,
+                prompt: prompt,
+                provider: 'DALL-E'
+            };
+            
+        } catch (error) {
+            console.error('DALL-E generation error:', error);
+            throw error;
+        }
+    }
+
+    async generateWithHuggingFace(content, style) {
+        // Hugging Face Inference API - bezpłatne generowanie obrazów
+        const prompt = this.createImagePrompt(content, style);
+        console.log('📝 Hugging Face prompt:', prompt);
+        
+        try {
+            console.log('🌐 Sending request to Hugging Face API...');
+            // Używamy bezpłatnego modelu Stable Diffusion przez Hugging Face
+            const response = await fetch('https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Można dodać token Hugging Face dla lepszych limitów
+                    // 'Authorization': `Bearer ${huggingFaceToken}`
+                },
+                body: JSON.stringify({
+                    inputs: prompt,
+                    parameters: {
+                        num_inference_steps: 20,
+                        guidance_scale: 7.5,
+                        width: 512,
+                        height: 512
+                    }
+                })
+            });
+
+            console.log('📡 Hugging Face response status:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Hugging Face API Error:', response.status, response.statusText, errorText);
+                throw new Error(`Hugging Face API error (${response.status}): ${response.statusText}`);
+            }
+
+            console.log('✅ Hugging Face API response successful, processing image...');
+            // Hugging Face zwraca obraz jako blob
+            const imageBlob = await response.blob();
+            const imageUrl = URL.createObjectURL(imageBlob);
+            
+            console.log('🖼️ Image blob created, size:', imageBlob.size, 'bytes');
+            
+            return {
+                type: 'ai-image',
+                url: imageUrl,
+                prompt: prompt,
+                provider: 'Hugging Face (Stable Diffusion)',
+                blob: imageBlob // Zachowujemy blob dla późniejszego użycia
+            };
+            
+        } catch (error) {
+            console.error('💥 Hugging Face generation error:', error);
+            
+            // Jeśli Hugging Face nie działa, spróbujmy z bezpłatnym API
+            if (error.message.includes('429') || error.message.includes('rate limit')) {
+                console.log('⏰ Hugging Face rate limited, trying alternative...');
+                return await this.generateWithAlternativeAPI(content, style);
+            }
+            
+            throw error;
+        }
+    }
+
+    async generateWithAlternativeAPI(content, style) {
+        // Alternatywne bezpłatne API dla generowania obrazów
+        const prompt = this.createImagePrompt(content, style);
+        console.log('🔄 Trying alternative API with prompt:', prompt);
+        
+        try {
+            console.log('🌐 Sending request to alternative API...');
+            // Używamy bezpłatnego API (można zmienić na inne)
+            const response = await fetch('https://api.deepai.org/api/text2img', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'api-key': 'free' // DeepAI ma darmowy plan
+                },
+                body: new URLSearchParams({
+                    text: prompt
+                })
+            });
+
+            console.log('📡 Alternative API response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`Alternative API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('📊 Alternative API response data:', data);
+            
+            if (data.output_url) {
+                console.log('✅ Alternative API image generated:', data.output_url);
+                return {
+                    type: 'ai-image',
+                    url: data.output_url,
+                    prompt: prompt,
+                    provider: 'Alternative API'
+                };
+            } else {
+                throw new Error('No image URL in response');
+            }
+            
+        } catch (error) {
+            console.error('💥 Alternative API generation error:', error);
+            // Ostateczny fallback - zwracamy null żeby użyć enhanced elements
+            return null;
+        }
+    }
+
+    createImagePrompt(content, style) {
+        // Clean content and create a good image prompt
+        let cleanContent = content
+            .replace(/^[-•]\s*/, '') // Remove bullet points
+            .replace(/^\d+\.?\s*/, '') // Remove numbers
+            .replace(/[^\w\s]/g, ' ') // Remove special characters
+            .trim()
+            .substring(0, 100); // Limit length
+
+        // Style-specific prompts for better AI generation
+        const stylePrompts = {
+            'hand-drawn': 'hand-drawn whiteboard sketch, simple line art, educational illustration, clean lines, minimalist',
+            'minimal': 'minimalist whiteboard design, clean geometric shapes, simple diagrams, modern style, professional',
+            'business': 'professional business whiteboard diagram, corporate style, clean layout, professional illustration',
+            'educational': 'educational whiteboard illustration, clear diagrams, learning materials, simple and clear',
+            'creative': 'creative artistic whiteboard style, colorful elements, imaginative illustration, engaging visuals'
+        };
+
+        const stylePrompt = stylePrompts[style] || stylePrompts['minimal'];
+        
+        // Create a comprehensive prompt for AI image generation
+        const basePrompt = `Whiteboard illustration: ${cleanContent}`;
+        const styleInstruction = `Style: ${stylePrompt}`;
+        const qualityInstruction = `High quality, simple, clear, easy to understand, white background, black lines`;
+        
+        return `${basePrompt}. ${styleInstruction}. ${qualityInstruction}`;
+    }
+
+    createAIImageElement(aiImage, content, style, stepIndex) {
+        const baseX = 50 + (stepIndex % 3) * 250;
+        const baseY = 50 + Math.floor(stepIndex / 3) * 150;
+        
+        // Store blob URL for cleanup
+        if (aiImage.blob) {
+            // Store reference for cleanup
+            if (!this.aiImageBlobs) {
+                this.aiImageBlobs = [];
+            }
+            this.aiImageBlobs.push(aiImage.url);
+        }
+        
+        return {
+            type: 'ai-image',
+            url: aiImage.url,
+            prompt: aiImage.prompt,
+            provider: aiImage.provider,
+            x: baseX,
+            y: baseY,
+            width: 200,
+            height: 200,
+            content: content,
+            style: style,
+            blob: aiImage.blob
+        };
+    }
+
+    // Cleanup function for AI image blobs
+    cleanupAIImageBlobs() {
+        if (this.aiImageBlobs) {
+            this.aiImageBlobs.forEach(url => {
+                if (url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
+            });
+            this.aiImageBlobs = [];
         }
     }
 
@@ -821,6 +1089,9 @@ Zakończenie
         this.fabricCanvas.backgroundColor = '#ffffff';
         this.fabricCanvas.renderAll();
         this.updateProgressBar();
+        
+        // Cleanup AI image blobs
+        this.cleanupAIImageBlobs();
     }
 
     startAnimationLoop() {
@@ -937,6 +1208,52 @@ Zakończenie
                     fill: element.color,
                     selectable: false
                 });
+                break;
+
+            case 'ai-image':
+                // For AI images, we need to load the image first
+                try {
+                    console.log('🖼️ Loading AI image:', element.url);
+                    // Create a temporary image element to load the URL
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    img.onload = () => {
+                        console.log('✅ AI image loaded successfully, creating fabric object...');
+                        const fabricImg = new fabric.Image(img, {
+                            left: element.x,
+                            top: element.y,
+                            width: element.width,
+                            height: element.height,
+                            selectable: false,
+                            evented: false
+                        });
+                        
+                        // Add to canvas
+                        this.fabricCanvas.add(fabricImg);
+                        this.fabricCanvas.renderAll();
+                        
+                        console.log('🎨 AI image added to canvas:', element.url);
+                    };
+                    
+                    img.onerror = () => {
+                        console.error('❌ Failed to load AI image:', element.url);
+                        // Fallback to text element
+                        const fallbackElement = this.createTextElement(element.content, 'text', element.style, element.x, element.y);
+                        this.drawElement(fallbackElement);
+                    };
+                    
+                    img.src = element.url;
+                    
+                    // Return null since we're handling the image asynchronously
+                    return null;
+                    
+                } catch (error) {
+                    console.error('💥 Error creating AI image element:', error);
+                    // Fallback to text element
+                    const fallbackElement = this.createTextElement(element.content, 'text', element.style, element.x, element.y);
+                    return this.drawElement(fallbackElement);
+                }
                 break;
 
             default:
@@ -1091,7 +1408,7 @@ Zakończenie
         
         switch (provider) {
             case 'demo':
-                statusText.textContent = 'Demo mode - podstawowe scenariusze';
+                statusText.textContent = 'Demo mode - podstawowe scenariusze + elementy wizualne';
                 break;
             case 'openai':
                 const openaiKey = localStorage.getItem('openai-api-key');
@@ -1106,18 +1423,18 @@ Zakończenie
                 const geminiKey = localStorage.getItem('gemini-api-key');
                 if (geminiKey) {
                     statusElement.classList.add('connected');
-                    statusText.textContent = 'Google Gemini - Połączono ✓ (DARMOWY!)';
+                    statusText.textContent = 'Google Gemini - Połączono ✓ (Obrazy: Hugging Face)';
                 } else {
-                    statusText.textContent = 'Google Gemini - Wymagany klucz API (DARMOWY!)';
+                    statusText.textContent = 'Google Gemini - Wymagany klucz API (Obrazy: Hugging Face)';
                 }
                 break;
             case 'grok':
                 const grokKey = localStorage.getItem('grok-api-key');
                 if (grokKey) {
                     statusElement.classList.add('connected');
-                    statusText.textContent = 'Grok - Połączono ✓';
+                    statusText.textContent = 'Grok - Połączono ✓ (Obrazy: Hugging Face)';
                 } else {
-                    statusText.textContent = 'Grok - Wymagany klucz API';
+                    statusText.textContent = 'Grok - Wymagany klucz API (Obrazy: Hugging Face)';
                 }
                 break;
         }

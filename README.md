@@ -10,10 +10,35 @@ Platforma AI, która tworzy animacje whiteboard i automatycznie generuje wciąga
 
 **[Wypróbuj SketchStory AI](https://yourusername.github.io/sketchstory-ai/)**
 
+📝 **Changelog**: [CHANGELOG.md](CHANGELOG.md) - historia zmian i nowych funkcji
+
+### 🆕 Nowe funkcje w najnowszej wersji:
+- **🎨 AI Image Generation**: Automatyczne generowanie obrazów AI dla każdego kroku
+- **🤖 Multiple AI Providers**: DALL-E, Stable Diffusion, Hugging Face
+- **💾 Memory Management**: Automatyczne czyszczenie pamięci obrazów
+- **📊 Enhanced Logging**: Szczegółowe logi dla debugowania
+- **🔄 Fallback System**: Automatyczne przełączanie między API
+
+### 🎯 Jak używać AI Image Generation:
+1. **Włącz "Automatyczne generowanie obrazów"** w opcjach AI
+2. **Wybierz dostawcę AI** (Gemini/Grok dla bezpłatnych obrazów)
+3. **Wprowadź temat** historii
+4. **Kliknij "Generuj Animację"**
+5. **Obserwuj** jak AI generuje obrazy dla każdego kroku
+6. **Ciesz się** animacją z obrazami AI!
+
 ## ✨ Funkcje
+
+### 🆕 NOWOŚĆ: AI Image Generation! 🎨
+- **🤖 Automatyczne generowanie obrazów AI** dla każdego kroku animacji
+- **🚀 OpenAI DALL-E**: Najwyższej jakości obrazy (wymaga klucza API)
+- **🤖 Hugging Face Stable Diffusion**: Bezpłatne generowanie obrazów
+- **🔄 Fallback System**: Automatyczne przełączanie między API
+- **💾 Memory Management**: Inteligentne zarządzanie pamięcią obrazów
 
 ### 🎯 Główne możliwości:
 - **AI-Generated Stories**: Automatyczne tworzenie scenariuszy na podstawie prompta
+- **AI-Generated Images**: Generowanie obrazów AI dla każdego kroku animacji
 - **Whiteboard Animations**: Płynne animacje rysowania w stylu whiteboard
 - **Multiple Styles**: 5 różnych stylów wizualnych (hand-drawn, minimal, business, educational, creative)
 - **Interactive Controls**: Play, pause, stop, progress tracking
@@ -21,7 +46,9 @@ Platforma AI, która tworzy animacje whiteboard i automatycznie generuje wciąga
 - **Responsive Design**: Działa na wszystkich urządzeniach
 
 ### 🤖 Integracja AI:
-- **OpenAI GPT Integration**: Generowanie historii i scenariuszy
+- **AI-Generated Stories**: Automatyczne tworzenie scenariuszy na podstawie prompta
+- **AI-Generated Images**: Generowanie obrazów AI dla każdego kroku animacji
+- **Multiple AI Providers**: OpenAI DALL-E, Hugging Face Stable Diffusion, Alternative APIs
 - **Smart Visual Parsing**: Automatyczne rozpoznawanie elementów wizualnych
 - **Content Optimization**: Optymalizacja przepływu narracji
 - **Multi-language Support**: Wsparcie dla różnych języków
@@ -44,6 +71,7 @@ Platforma AI, która tworzy animacje whiteboard i automatycznie generuje wciąga
 
 ### AI & APIs:
 - **Multi-AI Support**: OpenAI GPT, Google Gemini, Grok (X.AI)
+- **AI Image Generation**: DALL-E, Stable Diffusion, Hugging Face, Alternative APIs
 - **Google Gemini**: DARMOWY klucz API!
 - **Fallback Demo**: Działa bez żadnego klucza
 - **Web Speech API**: Text-to-speech (planowane)
@@ -89,14 +117,43 @@ npx http-server
 
 ## ⚙️ Konfiguracja
 
-### 1. Wybór dostawcy AI (Opcjonalny - ale zalecany!)
+### 1. AI Image Generation (NOWOŚĆ! 🎨)
+
+**🚀 OpenAI DALL-E (Płatne)**
+- Najwyższa jakość obrazów
+- Wymaga klucza OpenAI API
+- Generuje obrazy w stylu whiteboard
+
+**🤖 Hugging Face Stable Diffusion (Bezpłatne!)**
+- Bezpłatne generowanie obrazów
+- Działa z Gemini i Grok
+- Automatyczny fallback na alternative APIs
+
+**🎭 Demo Mode**
+- Elementy wizualne z emoji i kształtami
+- Działa bez żadnego klucza API
+- Idealne do testowania
+
+**🔄 Fallback System**
+- Automatyczne przełączanie między API
+- Jeśli Hugging Face nie działa → Alternative API
+- Jeśli wszystko nie działa → Enhanced Elements
+- Zawsze coś się wyświetli!
+
+### 2. Wybór dostawcy AI (Opcjonalny - ale zalecany!)
 
 **🎉 ZALECANE: Google Gemini (DARMOWY!)**
 1. Uzyskaj DARMOWY klucz z [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Wybierz "Google Gemini" w ustawieniach
 3. Wprowadź klucz API
 4. **Przetestuj połączenie** (przycisk w ustawieniach)
-5. Ciesz się pełną funkcjonalnością za darmo!
+5. Ciesz się pełną funkcjonalnością za darmo + obrazami AI!
+
+**🚀 OpenAI DALL-E (Płatne - najwyższa jakość)**
+1. Uzyskaj klucz z [OpenAI Platform](https://platform.openai.com/api-keys)
+2. Wybierz "OpenAI" w ustawieniach
+3. Wprowadź klucz API
+4. Generuj obrazy najwyższej jakości z DALL-E
 
 **Alternatywnie:**
 - **OpenAI GPT**: [OpenAI Platform](https://platform.openai.com/api-keys) (płatny)
@@ -188,7 +245,8 @@ const colors = {
 ### Planowane funkcje:
 - [ ] **Text-to-Speech**: Automatyczna narracja
 - [ ] **Video Export**: Eksport jako MP4/WebM
-- [ ] **Advanced AI**: Integracja z DALL-E dla obrazów
+- [x] **Advanced AI**: Integracja z DALL-E dla obrazów ✅
+- [x] **AI Image Generation**: Stable Diffusion, Hugging Face ✅
 - [ ] **Collaboration**: Udostępnianie projektów
 - [ ] **Templates**: Gotowe szablony
 - [ ] **Music Integration**: Tło muzyczne
@@ -234,16 +292,26 @@ MIT License - zobacz [LICENSE](LICENSE) dla szczegółów.
 ### Problemy techniczne:
 - **GitHub Issues**: [Zgłoś problem](https://github.com/yourusername/sketchstory-ai/issues)
 - **Dokumentacja**: Ten README
+- **Testowanie**: [TESTING.md](TESTING.md) - szczegółowe instrukcje testowania
 - **FAQ**: [Wiki strona](https://github.com/yourusername/sketchstory-ai/wiki)
 
 ### API Issues:
 - **OpenAI API**: Sprawdź limit i billing
+- **Hugging Face**: Sprawdź rate limiting (bezpłatne API)
 - **CORS**: GitHub Pages obsługuje HTTPS
 - **Rate Limiting**: OpenAI ma limity requestów
 
+### Debugowanie AI Image Generation:
+- **Otwórz Console** w DevTools (F12)
+- **Sprawdź logi** z emoji (🎨, 🤖, 🚀, etc.)
+- **Obserwuj status** w loading overlay
+- **Sprawdź Network tab** dla API requests
+
 ## 🌟 Podziękowania
 
-- **OpenAI**: Za API GPT
+- **OpenAI**: Za API GPT i DALL-E
+- **Hugging Face**: Za bezpłatne Stable Diffusion API
+- **Google**: Za Gemini API
 - **Fabric.js**: Za canvas manipulation
 - **GSAP**: Za animacje
 - **Font Awesome**: Za ikony
